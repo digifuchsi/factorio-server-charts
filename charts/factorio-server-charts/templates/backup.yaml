@@ -1,0 +1,52 @@
+{{- if and (.Values.persistence.enabled) (.Values.backup.enabled) }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ include "factorio-server-charts.fullname" . }}-backup-job
+  labels:
+    app: {{ template "factorio-server-charts.fullname" . }}
+    chart: {{ template "factorio-server-charts.fullname" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  jobTemplate:
+    spec:
+      completions: 1
+      template:
+        spec:
+          containers:
+            - name: {{ template "factorio-server-charts.fullname" . }}-backup
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy:  {{ .Values.image.pullPolicy }}
+              {{- with .Values.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 10 }}
+              {{- end }}
+              volumeMounts:
+                - name: datadir
+                  mountPath: /factorio
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  for save in $SAVE_FOLDER
+                  do
+                  /bin/echo "Uploading save $f"
+                  /usr/bin/curl -T "$save" -u "$WEBDAV_USERNAME:$WEBDAV_PASSWORD" "$WEBDAV_URL/$save"
+                  done
+              restartPolicy: OnFailure
+              env:
+                - name: SAVE_FOLDER
+                  value: "/factorio/saves"
+                - name: WEBDAV_URL
+                  value: {{ .Values.backup.url | quote }}
+                - name: WEBDAV_USERNAME
+                  value: {{ .Values.backup.usernname | quote }}
+                - name: WEBDAV_PASSWORD
+                  value: {{ .Values.backup.password | quote }}
+          volumes:
+            - name: datadir
+              persistentVolumeClaim:
+                claimName: {{ if .Values.persistence.dataDir.existingClaim }} {{.Values.persistence.dataDir.existingClaim}} {{ else }}{{ template "factorio-server-charts.fullname" . }}-datadir {{ end }}
+{{- end }}

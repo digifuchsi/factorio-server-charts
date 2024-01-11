@@ -119,6 +119,22 @@ persistence:
   ## If you have annotations to spin up a PV i.e. the location. Remove the curly braces
   annotations: {}
 
+#### Backup Configuration ####
+## @section Backup Configuration
+## @param backup.enabled Enable backup using an HTTP target (webDAV)
+## @param backup.schedule Schedule to set for the backup (see https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#schedule-syntax)
+## @param backup.url Web-URL to upload the save files to
+## @param backup.username Username to authenticate
+## @param backup.password Password to authenticate
+## Sets the backup job configuration
+## IMPORTANT: If you do not enable persistence, backup will not work as it needs access to the gamesaves on a PV
+backup:
+  enabled: false
+  # sets the backup job to run every full hour
+  schedule: "0 * * * *"
+  url: ""
+  username: ""
+  password: ""
 
 #### Factorio application configuration ####
 ## @section Factorio Parameters
